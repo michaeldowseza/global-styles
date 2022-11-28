@@ -22,7 +22,8 @@
   ],
   "scripts": {
     "prepare": "husky install",
-    "build": "node postcss.js && tsc",
+    "build": "node postcss.js && tsc && npm run package",
+    "package": "rm -rf build && mkdir build && npm pack && tar -xvf cloudscape-design-global-styles-*.tgz && mv ./package/* ./build && rm cloudscape-design-global-styles-1.0.0.tgz && rm -rf package",
     "lint": "eslint .",
     "test": "jest --coverage"
   },

@@ -1,0 +1,54 @@
+# This workflow releases the current package to a dedicated private CodeArtifact repository.
+# One repository may publish more than one package. For more details refer to the release-package Action.
+name: import
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  import:
+    concurrency: import-${{ github.ref }}
+    runs-on: ubuntu-latest
+    env:
+      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+      ARTIFACT_OUTPUT: s3://${{ secrets.AWS_ARTIFACTS_BUCKET_NAME }}/${{ github.event.repository.name }}/${{ github.head_ref || github.ref_name }}/${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 14.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 14.x
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-west-2
+      - name: Build
+        run: |
+          npm ci
+          npm run build
+      - name: Copy build to S3
+        run: |
+          cd build
+          zip -r ./build.zip .
+          aws s3 cp ${GITHUB_WORKSPACE}/build/build.zip $ARTIFACT_OUTPUT
+      - name: Run import
+        uses: dark-mechanicum/aws-codebuild@v1
+        with:
+          projectName: ${{ secrets.AWS_CODEBUILD_PROJECT_NAME }}
+          buildStatusInterval: 5000
+          logsUpdateInterval: 5000
+          waitToBuildEnd: true
+          displayBuildLogs: true
+        env:
+          CODEBUILD__environmentVariablesOverride: '[
+            { "name":"AWSUI_GH_REPO_NAME", "value":"${{ github.event.repository.name }}", "type": "PLAINTEXT" },
+            { "name":"AWSUI_GH_BRANCH_NAME", "value":"${{ github.head_ref || github.ref_name }}", "type": "PLAINTEXT" },
+            { "name":"GITHUB_SHA", "value":"${{ github.sha }}", "type": "PLAINTEXT" }
+          ]'

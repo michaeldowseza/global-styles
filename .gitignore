@@ -4,3 +4,6 @@ node_modules
 /index.css
 coverage
 .DS_Store
+*.tgz
+package
+artifacts
