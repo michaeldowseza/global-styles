@@ -23,12 +23,16 @@ jobs:
           node-version: 14.x
       - name: Build
         run: |
-          npm ci
+          npm install
           npm run build
+      - name: Post Build
+        run: |
+          cd build
+          zip -r ./build.zip .
       - uses: actions/upload-artifact@master
         with:
           name: build-artifact
-          path: build 
+          path: build/build.zip
   import:
     concurrency: import-${{ github.ref }}
     runs-on: ubuntu-latest
@@ -52,8 +56,6 @@ jobs:
           path: build
       - name: Copy build to S3
         run: |
-          cd build
-          zip -r ./build.zip .
           aws s3 cp ${GITHUB_WORKSPACE}/build/build.zip $ARTIFACT_OUTPUT
       - name: Run import
         uses: dark-mechanicum/aws-codebuild@v1
