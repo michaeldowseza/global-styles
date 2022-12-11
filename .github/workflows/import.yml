@@ -32,6 +32,7 @@ jobs:
   import:
     concurrency: import-${{ github.ref }}
     runs-on: ubuntu-latest
+    needs: build
     env:
       ARTIFACT_OUTPUT: s3://${{ secrets.AWS_ARTIFACTS_BUCKET_NAME }}/${{ github.event.repository.name }}/${{ github.head_ref || github.ref_name }}/${{ github.sha }}
     steps:
