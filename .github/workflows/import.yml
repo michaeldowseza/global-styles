@@ -12,11 +12,27 @@ permissions:
   contents: read
 
 jobs:
+  build:
+    concurrency: import-${{ github.ref }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js 14.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 14.x
+      - name: Build
+        run: |
+          npm ci
+          npm run build
+      - uses: actions/upload-artifact@master
+        with:
+          name: build-artifact
+          path: build 
   import:
     concurrency: import-${{ github.ref }}
     runs-on: ubuntu-latest
     env:
-      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
       ARTIFACT_OUTPUT: s3://${{ secrets.AWS_ARTIFACTS_BUCKET_NAME }}/${{ github.event.repository.name }}/${{ github.head_ref || github.ref_name }}/${{ github.sha }}
     steps:
       - uses: actions/checkout@v3
@@ -29,10 +45,10 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-west-2
-      - name: Build
-        run: |
-          npm ci
-          npm run build
+      - uses: actions/download-artifact@master
+        with:
+          name: build-artifact
+          path: build
       - name: Copy build to S3
         run: |
           cd build
@@ -51,4 +67,4 @@ jobs:
             { "name":"AWSUI_GH_REPO_NAME", "value":"${{ github.event.repository.name }}", "type": "PLAINTEXT" },
             { "name":"AWSUI_GH_BRANCH_NAME", "value":"${{ github.head_ref || github.ref_name }}", "type": "PLAINTEXT" },
             { "name":"GITHUB_SHA", "value":"${{ github.sha }}", "type": "PLAINTEXT" }
-          ]'
+          ]'  
