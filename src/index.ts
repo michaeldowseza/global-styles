@@ -42,3 +42,5 @@ export function applyDensity(density: Density | null, target: Element = document
 export function disableMotion(disabled: boolean, target: Element = document.body): void {
   toggleClass(target, 'awsui-motion-disabled', disabled);
 }
+
+// Test change
